@@ -47,11 +47,11 @@ class ClickhouseSink(SQLSink):
         )
 
     def bulk_insert_records(
-            self,
-            full_table_name: str,
-            schema: dict,
-            records: Iterable[dict[str, Any]],
-        ) -> int | None:
+        self,
+        full_table_name: str,
+        schema: dict,
+        records: Iterable[dict[str, Any]],
+    ) -> int | None:
         """Bulk insert records to an existing destination table.
 
         The default implementation uses a generic SQLAlchemy bulk insert operation.
@@ -71,6 +71,12 @@ class ClickhouseSink(SQLSink):
         for record in records:
             for key, value in record.items():
                 if isinstance(value, dict):
+                    record[key] = json.dumps(value)
+
+                # Handle Postgres JSON/JSONb arrays that are extracted as python arrays of objects
+                if ("object" in schema["properties"][key]["type"]) and isinstance(
+                    value, list
+                ):
                     record[key] = json.dumps(value)
 
         return super().bulk_insert_records(full_table_name, schema, records)
